@@ -3,34 +3,52 @@ import numpy as np
 from utils import get_date
 
 N_ADDL_VARS = 4
-G_RAD_CACHE = {}
 
-def interpget(source, time_of_year, hr, a=300, b=400):
-    global G_RAD_CACHE
-    
-    if source not in G_RAD_CACHE: 
-        G_RAD_CACHE[source] = {}
-        
-    def load(x, hr):
-        if (x, hr) in G_RAD_CACHE[source]:
-            return G_RAD_CACHE[source][(x, hr)]
-        
-        F = torch.HalfTensor
-        data = F(((np.load('constants/additional_vars/%s/%d_%d.npy' % (source, x, hr)) - a) / b))
-        G_RAD_CACHE[source][(x, hr)] = data
-        return data
-    
-    if time_of_year % 2 == 1:
-        avg = load((time_of_year-1)%366, hr) * 0.5 + load((time_of_year+1)%366, hr) * 0.5
-    else:
-        avg = load(time_of_year, hr)
-    
-    return avg
+_RES = 0.25
+_LONS_1D = np.arange(0, 360, _RES)
+_LATS_1D = np.arange(90, -90.01, -_RES)[:-1]
+_LONS, _LATS = np.meshgrid(_LONS_1D, _LATS_1D)
+_LAT_RAD = np.radians(_LATS)
+
+def _compute_radiation_and_solar(doy, hr):
+    """Compute radiation (W/m^2) and solar altitude (degrees) for day-of-year and hour.
+
+    Args:
+        doy: day-of-year, 0-based (0 = Jan 1)
+        hr: hour of day (0-23)
+    Returns:
+        (radiation, altitude_deg) arrays of shape (720, 1440), float32
+    """
+    day = doy + 1
+
+    declination_rad = np.radians(23.45 * np.sin((2 * np.pi / 365.0) * (day - 81)))
+
+    b = 2 * np.pi / 364.0 * (day - 81)
+    eot = 9.87 * np.sin(2 * b) - 7.53 * np.cos(b) - 1.5 * np.sin(b)
+
+    solar_time = (hr * 60 + 4 * _LONS + eot) / 60.0
+    hour_angle_rad = np.radians(15.0 * (solar_time - 12.0))
+
+    sin_alt = np.clip(
+        np.cos(_LAT_RAD) * np.cos(declination_rad) * np.cos(hour_angle_rad)
+        + np.sin(_LAT_RAD) * np.sin(declination_rad),
+        -1, 1
+    )
+    altitude_deg = np.degrees(np.arcsin(sin_alt))
+
+    is_daytime = altitude_deg > 0
+    flux = 1160 + 75 * np.sin(2 * np.pi / 365 * (day - 275))
+    optical_depth = 0.174 + 0.035 * np.sin(2 * np.pi / 365 * (day - 100))
+    safe_alt_rad = np.where(is_daytime, np.radians(altitude_deg), 1.0)
+    radiation = flux * np.exp(-optical_depth / np.sin(safe_alt_rad)) * is_daytime
+
+    return radiation.astype(np.float32), altitude_deg.astype(np.float32)
 
 def get_additional_vars(t0s):
     """
     Adds additional variables to the input tensor which are not dependent on the input data but do change vs time.
-    
+    Computes radiation and solar angle on the fly (no external data files needed).
+
     Args:
         t0s (torch.Tensor): A tensor of shape (B,) containing the time of the input data
     """
@@ -38,19 +56,24 @@ def get_additional_vars(t0s):
     dates = [get_date(t0.item()) for t0 in t0s]
     start_of_years = [date.replace(month=1, day=1) for date in dates]
     time_of_years = [int((date - soy).total_seconds()/86400) for date, soy in zip(dates, start_of_years)]
-    
-    radiations = [interpget("neoradiation_1", time_of_year, date.hour)[:720,:,np.newaxis].unsqueeze(0).to(device) for time_of_year, date in zip(time_of_years, dates)]
-    radiations = torch.cat(radiations, dim=0)
+
+    rad_list, ang_list = [], []
+    for time_of_year, date in zip(time_of_years, dates):
+        rad, ang = _compute_radiation_and_solar(time_of_year, date.hour)
+        rad_norm = torch.HalfTensor((rad - 300) / 400)
+        ang_rad = torch.HalfTensor(np.radians(ang))
+        rad_list.append(rad_norm[:720, :, np.newaxis].unsqueeze(0).to(device))
+        ang_list.append(ang_rad[:720, :, np.newaxis].unsqueeze(0).to(device))
+
+    radiations = torch.cat(rad_list, dim=0)
+    solar_angles = torch.cat(ang_list, dim=0)
+
     hours = torch.tensor([date.hour/24 for date in dates]).to(device)
     time_of_day = (torch.zeros_like(radiations, device=hours.device) + hours[:,None, None, None])
-    
-    solar_angles = [interpget("solarangle_1", time_of_year, date.hour, a=0, b=180/np.pi) for time_of_year, date in zip(time_of_years, dates)]
-    solar_angles = [angle[:720, :, np.newaxis].unsqueeze(0).to(device) for angle in solar_angles]
-    solar_angles = torch.cat(solar_angles, dim=0)
-    
+
     sin_angles = torch.sin(solar_angles)
     cos_angles = torch.cos(solar_angles)
-    
+
     out = torch.cat((radiations, time_of_day, sin_angles, cos_angles), axis=-1)
     assert out.shape[3] == N_ADDL_VARS, f"Expected {N_ADDL_VARS} additional variables, but got {out.shape[3]}"
     return out
