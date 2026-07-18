@@ -9,6 +9,7 @@ import torch
 import pipeline  # noqa: F401
 from pipeline.model_io import load_model
 from pipeline.sample_input import build_input_tensor
+from pipeline.postprocess import to_dataset, save_netcdf
 from utils import levels_gfs, levels_hres
 
 DATA_DIR = "sample_data/huge/proc/haoxing_data/wm3/data"
@@ -52,6 +53,15 @@ def main():
 
     torch.save({str(k): v for k, v in outputs.items() if k != "latent_l2"}, "outputs/sample_rollout_raw.pt")
     print("Saved raw (normalized) outputs to outputs/sample_rollout_raw.pt")
+
+    era_mesh = model.decoders[0].mesh
+    for dt, y in outputs.items():
+        if dt == "latent_l2":
+            continue
+        ds = to_dataset(y[0], era_mesh, init_time=TIMESTAMP, forecast_hour=dt)
+        path = f"outputs/wm3_{TIMESTAMP}_f{dt:03d}.nc"
+        save_netcdf(ds, path)
+        print(f"Saved {path}")
 
 
 if __name__ == "__main__":
