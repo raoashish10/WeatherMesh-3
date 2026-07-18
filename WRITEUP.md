@@ -163,7 +163,7 @@ Full log in `TIME_LOG.md`. Git history backs it up directly (`git log 8b84ebd..H
 
 **Access** (no AWS account needed, both public read and public list):
 - Browse a cycle: `https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/?list-type=2&prefix=20260718_12z/`
-  (S3 has no real folders, so appending the prefix directly to the URL path 404s — use the query-parameter form above, or `aws s3 ls s3://windbornesystem-mlops-assignment/20260718_12z/` with the CLI)
+ or `aws s3 ls s3://windbornesystem-mlops-assignment/20260718_12z/` with the CLI)
 - Fetch a specific file directly, e.g.: `https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/20260718_12z/wm3_f006.nc`
 - Two real cycles are there right now:
   - `20260718_12z/` — standard production run, 60 forecast files + 2 eye-check plots
