@@ -1,1 +1,6 @@
 **/__pycache__/*
+weights/
+sample_data/
+outputs/
+*.nc
+*.log
