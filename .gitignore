@@ -2,5 +2,6 @@
 weights/
 sample_data/
 outputs/
+nomads_cache/
 *.nc
 *.log
