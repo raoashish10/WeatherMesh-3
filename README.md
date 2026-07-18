@@ -113,11 +113,11 @@ disk.
 
 ## Output storage
 
-Local: `outputs/<init_time_unix>/wm3_f<NNN>.nc`. Only the most recent 2 cycles are kept
+Local: `outputs/<YYYYMMDD_HHz>/wm3_f<NNN>.nc`. Only the most recent 2 cycles are kept
 locally (`pipeline/storage.py: prune_old_cycles`) since each cycle is ~10GB packed and this
 runs unattended — a remote bucket is the durable store, not the instance disk.
 
-**S3 is wired up and active**: `s3://windbornesystem-mlops-assignment/<init_time_unix>/
+**S3 is wired up and active**: `s3://windbornesystem-mlops-assignment/<YYYYMMDD_HHz>/
 wm3_f<NNN>.nc` (us-east-2). `scripts/cron_cycle.sh` exports `S3_BUCKET` for every cron
 run; AWS credentials live in `~/.aws/credentials` (outside this repo, not
 version-controlled). Confirmed working with a real upload verified against the bucket
