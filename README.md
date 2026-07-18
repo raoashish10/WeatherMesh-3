@@ -130,10 +130,17 @@ correctness-critical.
 
 ## Benchmarked timing (RTX 4090, this box)
 
-- Model load: ~4s. NOMADS fetch (parallel range requests, ~130 fields): ~1-4s.
-- GPU inference, full 60-lead-time rollout (+6h to +360h, chained via the 6-hour
-  processor): **~150-160s** (~2.5s per additional 6h step).
-- NetCDF postprocess+save (denormalize, int16 pack, zlib compress): ~10-15s/file, the
-  dominant cost — **full cycle wall-clock is ~15 minutes**, comfortably inside the 6h
-  cron window. This is the first place to optimize with more time (parallelize file
-  writes across cores).
+Measured directly from a real full-schedule run (`scripts/run_live_rollout.py`, no args,
+60 lead times +6h..+360h, GFS cycle 2026-07-18 12z):
+
+| stage | time |
+|---|---|
+| Model load | 4.0s |
+| NOMADS fetch (parallel range requests, 133 grib2 fields) | 1.5s |
+| **GPU inference, full 60-lead-time rollout** (chained via the 6-hour processor) | **114.4s** (~1.9s/step) |
+| NetCDF postprocess+save, all 60 files (denormalize, int16 pack, zlib compress) | ~776s (~13s/file) |
+| **Total cycle wall-clock** | **892.0s (~14.9 min)** |
+
+NetCDF postprocessing (not GPU inference) is the dominant cost — comfortably inside the
+6h cron window regardless, but the first place to optimize with more time (it's
+single-threaded; parallelizing file writes across CPU cores would help most).

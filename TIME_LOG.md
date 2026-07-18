@@ -18,3 +18,13 @@
   plausible desert extremes), no NaN/Inf/blowups. Hour-0 reconstruction vs actual GFS
   input: mean abs diff 0.74K, visually near-identical — strong end-to-end correctness
   signal.
+- 2026-07-18 18:3x — cron installed (dockerd can't run here, no NAT/iptables privilege
+  in this nested-container box — documented, not chased further). Full production cycle
+  (60 files, +6h..+360h) benchmarked end-to-end: 114.4s GPU inference, 892.0s total
+  (dominated by NetCDF postprocess/save, ~13s/file). Fixed a real OOM bug found during
+  this run: decoded outputs for all 60 lead times were staying resident on GPU
+  simultaneously (~35GB) — fixed via `forward(..., send_to_cpu=True)`.
+- 2026-07-18 18:4x — Full-schedule validation: 91 boundary flags, all in just 2 checks
+  (atm temp slightly >320K, specific humidity slightly >0.025 kg/kg), stable across all
+  60 lead times (not diverging). Geo-clustering check in progress to confirm these
+  coincide with known hot-desert regions rather than being random/oceanic.
