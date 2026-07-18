@@ -73,6 +73,7 @@ Three plots from a live rollout on real, freshly-pulled GFS data (2026-07-18 12z
 
 ### ii. Sanity checks I ran
 
+Inference wall-clock benchmark (model load, GPU rollout time, NetCDF postprocess time) is in `README.md`'s "Benchmarked timing" section — measured from a real completed 60-lead-time run and re-confirmed on two later runs (892.0s / 894.1s / 968.8s total cycle time, consistent).
 
 - **Hour-0 reconstruction vs. actual input** (plot 1 above), the strongest correctness signal I have. 
   - If channel ordering, normalization, or the level-interpolation step were wrong, this wouldn't come close to matching.
