@@ -161,6 +161,14 @@ Full log in `TIME_LOG.md`. Git history backs it up directly (`git log 8b84ebd..H
 - I confirmed it works end-to-end: a real upload through `run_live_rollout.py` (not just a standalone boto3 call), listed back from the bucket to check the objects and sizes match
 - Outputs also stay on local disk (`outputs/<YYYYMMDD_HHz>/wm3_f<NNN>.nc`, pruned to the 2 most recent cycles) as a working cache — S3 is the durable store
 
+**Access** (no AWS account needed, both public read and public list):
+- Browse a cycle: `https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/?list-type=2&prefix=20260718_12z/`
+  (S3 has no real folders, so appending the prefix directly to the URL path 404s — use the query-parameter form above, or `aws s3 ls s3://windbornesystem-mlops-assignment/20260718_12z/` with the CLI)
+- Fetch a specific file directly, e.g.: `https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/20260718_12z/wm3_f006.nc`
+- Two real cycles are there right now:
+  - `20260718_12z/` — standard production run, 60 forecast files + 2 eye-check plots
+  - `20260703_00z/` — the Typhoon Bavi retrospective validation run, 36 forecast files + track plot + results JSON
+
 ## (f) Repo
 
 https://github.com/raoashish10/WeatherMesh-3 — setup instructions, Dockerfile, and a documented list of deviations from a literal WindBorne-API-based pipeline are in `README.md`.
