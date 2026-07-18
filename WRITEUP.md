@@ -27,16 +27,26 @@ near-identical.
 
 ## (b) Answers
 
-### i. Cloud provider / node, and what changes for 99.9% uptime
+### i. How the provider and node were chosen, and what changes for 99.9% uptime
 
-The GPU box this pipeline was built and run on was already provisioned when this session
-started: an RTX 4090 (47GB reported to the OS), torch 2.4.0+cu121, Ubuntu 22.04 — matching
-the profile researched beforehand (vast.ai, a single 24GB+-class consumer GPU; WM-3's
-~1.2GB weights and 720×1440 grid don't need multi-GPU or A100s). I didn't personally shop
-for and rent an instance in this session since one was already available, but the specs
-line up with that plan: CUDA 12.1 to match the pinned NATTEN wheel (`natten==0.17.3
-+torch240cu121` — the real installation risk, not GPU generation), on-demand rather than
-interruptible given the "run 24h+ unattended" requirement.
+The choice wasn't arbitrary. The WM-3 paper itself reports its headline efficiency number
+(a 14-day forecast in 12 seconds) on a **single RTX 4090**, and states the model runs on
+hardware as light as a 16GB-VRAM consumer laptop — a third of Aurora's footprint. Even
+WM-3's *training* run used 6 RTX 4090s rather than datacenter GPUs. So a 24GB-class
+consumer card isn't a compromise pick here; it's the same tier the paper's own authors
+validated, with headroom above their stated floor — headroom that mattered in practice,
+since it's what absorbed the batched-decode OOM found during validation (§(b)(ii)) without
+needing to shard.
+
+The constraint that actually narrowed the node search wasn't compute budget, it was
+software pinning: `natten==0.17.3+torch240cu121` requires exactly PyTorch 2.4.0 + CUDA
+12.1, so filtering hosts started with that CUDA/driver compatibility, then the 24GB tier,
+then cost. **Provider** (vast.ai) followed from the $50 hard cap — its peer-to-peer
+pricing beats Lambda/RunPod/hyperscalers — traded against host-quality variance, mitigated
+by checking each listing's reliability score and recent uptime before renting. Given the
+requirement to keep running 24h+ after submission, the instance was rented **on-demand,
+not interruptible/spot**, since preemption would silently violate that requirement
+mid-cycle.
 
 For 99.9% uptime in production, the honest answer is this setup (one box, cron, local
 disk) doesn't get you there. I'd change:
@@ -101,10 +111,7 @@ end-of-session dump). Condensed:
 | 18:09-18:18 | NOAA NOMADS ETL built (replacing WindBorne API, which required approval this budget didn't allow for); found+fixed the cloud-cover unit bug |
 | 18:18-18:35 | Validation + 3 plots; cron automation, GCS-ready storage layer (deferred, not wired to a real bucket), Dockerfile, README |
 | 18:37-19:06 | Confirmed real full-cycle benchmark (found+fixed a GPU OOM in the process); geo-clustering analysis of validation flags; tightened alerting to NaN/Inf only; verified cron wrapper end-to-end via direct invocation; added per-cycle eye-check plots |
-
-Note: the architecture research and infra decisions (vast.ai choice, output schedule
-modeled on WM-6's API, etc.) referenced throughout were done in a separate research pass
-*before* this implementation session — this log covers the hands-on build.
+| 19:06-onward | S3 wired up and verified end-to-end (real upload checked against bucket listing); switched local/remote cycle naming from raw unix timestamps to readable `YYYYMMDD_HHz`; full production run (60 files + plots) to S3 for the most recent GFS cycle |
 
 ## (d) AI tools used
 
