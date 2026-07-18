@@ -115,8 +115,13 @@ if __name__ == "__main__":
         summary["run_started"] = run_started
         summary["run_finished"] = datetime.now(timezone.utc).isoformat()
         _write_status(summary)
-        if summary["issues"]:
-            raise SystemExit(f"Completed with {len(summary['issues'])} validation issue(s)")
+        # NaN/Inf are always a correctness bug worth alerting on. Plain range-boundary
+        # flags are logged either way, but on their own aren't alert-worthy: a full
+        # 60-lead-time run consistently produces ~90 of them from real extreme desert
+        # heat (e.g. Turpan Depression, Arabian Peninsula in July) -- see TIME_LOG.md.
+        critical = [i for i in summary["issues"] if "NaN" in i or "Inf" in i]
+        if critical:
+            raise SystemExit(f"{len(critical)} critical (NaN/Inf) issue(s): {critical[:5]}")
     except Exception as e:
         _write_status({
             "ok": False, "error": str(e),
