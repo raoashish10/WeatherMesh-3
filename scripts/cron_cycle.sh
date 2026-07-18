@@ -9,13 +9,19 @@ cd "$(dirname "$0")/.."
 # ~/.aws/credentials (outside the repo, not version-controlled), not here.
 export S3_BUCKET="${S3_BUCKET:-windbornesystem-mlops-assignment}"
 
+# cron's PATH doesn't include the conda env, so a bare `python3` resolves to the system
+# interpreter (no torch/numpy/etc installed) instead of this one -- confirmed the hard way
+# when the first real scheduled run failed with ModuleNotFoundError: No module named
+# 'torch'. Use the exact interpreter this pipeline was built/tested against.
+PYTHON3="/opt/conda/bin/python3"
+
 LOG_DIR="logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/cron_$(date -u +%Y%m%d_%H%M%S).log"
 ALERT_FILE="$LOG_DIR/alerts.log"
 
 echo "=== WM-3 cycle start: $(date -u -Iseconds) ===" | tee -a "$LOG_FILE"
-PYTHONPATH=. python3 scripts/run_live_rollout.py >> "$LOG_FILE" 2>&1
+PYTHONPATH=. "$PYTHON3" scripts/run_live_rollout.py >> "$LOG_FILE" 2>&1
 STATUS=$?
 echo "=== WM-3 cycle end: $(date -u -Iseconds), exit=$STATUS ===" | tee -a "$LOG_FILE"
 
