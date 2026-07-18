@@ -4,6 +4,11 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
+# cron runs with a minimal environment, so export upload config explicitly here rather
+# than relying on env vars set in an interactive shell. AWS credentials themselves live in
+# ~/.aws/credentials (outside the repo, not version-controlled), not here.
+export S3_BUCKET="${S3_BUCKET:-windbornesystem-mlops-assignment}"
+
 LOG_DIR="logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/cron_$(date -u +%Y%m%d_%H%M%S).log"

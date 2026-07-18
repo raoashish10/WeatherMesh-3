@@ -17,7 +17,10 @@ from pipeline.nomads_etl import find_latest_cycle, fetch_gfs_subset, parse_gfs_s
 from pipeline.live_input import build_live_input_tensor
 from pipeline.postprocess import to_dataset, save_netcdf
 from pipeline.validate import validate_dataset
-from pipeline.storage import local_path, cycle_dir, prune_old_cycles, upload_to_gcs, gcs_enabled
+from pipeline.storage import (
+    local_path, cycle_dir, prune_old_cycles,
+    upload_to_gcs, gcs_enabled, upload_to_s3, s3_enabled,
+)
 from pipeline.plots import plot_temperature_map, plot_pressure_wind_map
 from utils import levels_gfs, levels_hres, to_unix
 
@@ -82,6 +85,9 @@ def run_cycle(lead_hours=None, grib_cache="nomads_cache", keep_cycles=2):
         save_netcdf(ds, path)
         summary["saved"].append(path)
 
+        if s3_enabled():
+            uri = upload_to_s3(path, remote_key=f"{init_time}/wm3_f{dt:03d}.nc")
+            summary["uploaded"].append(uri)
         if gcs_enabled():
             uri = upload_to_gcs(path, remote_blob_name=f"{init_time}/wm3_f{dt:03d}.nc")
             summary["uploaded"].append(uri)

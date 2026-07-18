@@ -1,8 +1,8 @@
-"""Local-disk output layout + (deferred) Google Cloud Storage upload.
+"""Local-disk output layout + (deferred) S3 / Google Cloud Storage upload.
 
-Local disk is treated as the default sink; GCS is added as a second sink once a bucket
-and credentials are configured (GCS_BUCKET + GOOGLE_APPLICATION_CREDENTIALS env vars) --
-until then, upload calls are a documented no-op rather than failing the pipeline.
+Local disk is treated as the default sink; S3 and/or GCS are added as second sinks once a
+bucket and credentials are configured (S3_BUCKET / GCS_BUCKET env vars) -- until then,
+upload calls are a documented no-op rather than failing the pipeline.
 
 Local retention is capped: at ~170MB/file (int16-packed) and up to 161 files/forecast
 cycle, one cycle is already ~25-30GB. This box has a 100GB disk, so without pruning a
@@ -62,5 +62,30 @@ def upload_to_gcs(local_file_path, remote_blob_name=None):
     blob = bucket.blob(blob_name)
     blob.upload_from_filename(local_file_path)
     uri = f"gs://{bucket_name}/{blob_name}"
+    print(f"[storage] Uploaded {local_file_path} -> {uri}")
+    return uri
+
+
+def s3_enabled():
+    return bool(os.environ.get("S3_BUCKET"))
+
+
+def upload_to_s3(local_file_path, remote_key=None):
+    """No-op (logged) until S3_BUCKET is set. Uses boto3's standard credential chain
+    (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY env vars, ~/.aws/credentials, or an IAM
+    role) -- a *public* bucket almost always still means public-read, not anonymous
+    write, so uploading still needs real AWS credentials even if the objects end up
+    publicly readable once there."""
+    bucket_name = os.environ.get("S3_BUCKET")
+    if not bucket_name:
+        print(f"[storage] S3_BUCKET not set, skipping upload of {local_file_path}")
+        return None
+
+    import boto3
+
+    client = boto3.client("s3")
+    key = remote_key or local_file_path
+    client.upload_file(local_file_path, bucket_name, key)
+    uri = f"s3://{bucket_name}/{key}"
     print(f"[storage] Uploaded {local_file_path} -> {uri}")
     return uri
