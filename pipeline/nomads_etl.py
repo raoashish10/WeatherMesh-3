@@ -56,7 +56,7 @@ def _looks_like_grib_bytes(resp):
     return not (head.startswith(b"<!doctype") or head.startswith(b"<html"))
 
 
-def _get_with_retry(session, url, validate, headers=None, timeout=30, retries=6):
+def _get_with_retry(session, url, validate, headers=None, timeout=30, retries=8):
     last_status = None
     for attempt in range(retries):
         try:
@@ -66,7 +66,7 @@ def _get_with_retry(session, url, validate, headers=None, timeout=30, retries=6)
                 return r
         except requests.RequestException as e:
             last_status = str(e)
-        time.sleep(min(2 ** attempt, 20) + random.uniform(0, 1))
+        time.sleep(min(2 ** attempt, 30) + random.uniform(0, 1))
     raise RuntimeError(f"GET {url} failed after {retries} attempts (last: {last_status})")
 
 

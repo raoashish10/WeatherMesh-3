@@ -13,3 +13,8 @@
   fields, ~130MB/cycle in a few seconds). Fixed a real bug: GFS reports cloud cover as
   0-100%, model expects 0-1 fraction. Hardened fetch against NOMADS rate-limiting
   (redirects to an HTML error page that `requests` follows silently).
+- 2026-07-18 18:1x-18:2x — Validation script + 3 key plots done. Live rollout across
+  0-360h: only minor near-boundary plausibility flags (e.g. atm temp ~321K vs 320K bound,
+  plausible desert extremes), no NaN/Inf/blowups. Hour-0 reconstruction vs actual GFS
+  input: mean abs diff 0.74K, visually near-identical — strong end-to-end correctness
+  signal.
