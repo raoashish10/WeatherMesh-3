@@ -32,6 +32,20 @@ if [ $STATUS -ne 0 ]; then
         curl -s -X POST -H 'Content-Type: application/json' \
             -d "{\"text\": \"$MSG\"}" "$ALERT_WEBHOOK_URL" >/dev/null || true
     fi
+
+    # run_live_rollout.py's own _write_status() only runs from inside its __main__ try/
+    # except -- an import-time failure (e.g. the ModuleNotFoundError this line exists
+    # because of) crashes before that code ever runs, leaving last_run_status.json
+    # showing the *previous* successful run with no sign anything went wrong. Overwrite
+    # it here in pure shell (no python dependency) so a failure is never silently masked
+    # by stale "ok": true data.
+    cat > "$LOG_DIR/last_run_status.json" <<EOF
+{
+  "ok": false,
+  "error": "cron_cycle.sh: python exited with status $STATUS before writing its own status (see $LOG_FILE)",
+  "run_finished": "$(date -u -Iseconds)"
+}
+EOF
 fi
 
 # Keep only the 20 most recent cron logs so logs/ doesn't grow unbounded over 24h+.
