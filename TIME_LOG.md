@@ -24,6 +24,13 @@
   (dominated by NetCDF postprocess/save, ~13s/file). Fixed a real OOM bug found during
   this run: decoded outputs for all 60 lead times were staying resident on GPU
   simultaneously (~35GB) — fixed via `forward(..., send_to_cpu=True)`.
+- 2026-07-18 20:2x-20:4x — Retrospective ground-truth validation: verified Typhoon Bavi
+  (2026) is real (cross-checked Wikipedia/JTWC/Yale Climate Connections, not
+  hallucinated), pulled real 6-hourly best track from CIRA/CSU, fetched archived GFS
+  from NOAA's AWS Open Data bucket (NOMADS' live feed only keeps ~10 days), ran WM-3
+  9 days forward from 2026-07-03 init, tracked predicted storm position vs actual: mean
+  track error 177km over 36 lead times. Saved through the same storage/S3 path as
+  production.
 - 2026-07-18 19:3x — S3 wired up (windbornesystem-mlops-assignment, us-east-2), confirmed
   end-to-end. Switched local/S3 cycle naming from raw unix timestamps to readable
   YYYYMMDD_HHz. Ran one full production cycle (60 files + 2 eye-check plots) for the
