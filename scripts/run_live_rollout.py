@@ -17,7 +17,8 @@ from pipeline.nomads_etl import find_latest_cycle, fetch_gfs_subset, parse_gfs_s
 from pipeline.live_input import build_live_input_tensor
 from pipeline.postprocess import to_dataset, save_netcdf
 from pipeline.validate import validate_dataset
-from pipeline.storage import local_path, prune_old_cycles, upload_to_gcs, gcs_enabled
+from pipeline.storage import local_path, cycle_dir, prune_old_cycles, upload_to_gcs, gcs_enabled
+from pipeline.plots import plot_temperature_map, plot_pressure_wind_map
 from utils import levels_gfs, levels_hres, to_unix
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -68,6 +69,8 @@ def run_cycle(lead_hours=None, grib_cache="nomads_cache", keep_cycles=2):
         outputs = model.forward(x, lead_hours, send_to_cpu=True)
     print(f"Rollout took {time.time() - t_run:.1f}s")
 
+    plot_dt = min(dt for dt in outputs if dt != "latent_l2")  # one representative lead time
+    summary["plots"] = []
     for dt, y in outputs.items():
         if dt == "latent_l2":
             continue
@@ -82,6 +85,17 @@ def run_cycle(lead_hours=None, grib_cache="nomads_cache", keep_cycles=2):
         if gcs_enabled():
             uri = upload_to_gcs(path, remote_blob_name=f"{init_time}/wm3_f{dt:03d}.nc")
             summary["uploaded"].append(uri)
+
+        if dt == plot_dt:
+            # A quick per-cycle eye-check plot, not the full 3-plot writeup set -- just
+            # enough to visually catch a smudged/blown-up rollout without adding much
+            # time to every unattended run.
+            cdir = cycle_dir(init_time)
+            temp_path = f"{cdir}/eyecheck_temperature_f{dt:03d}.png"
+            wind_path = f"{cdir}/eyecheck_pressure_wind_f{dt:03d}.png"
+            plot_temperature_map(ds, temp_path)
+            plot_pressure_wind_map(ds, wind_path)
+            summary["plots"] += [temp_path, wind_path]
 
     removed = prune_old_cycles(keep=keep_cycles)
     if removed:
