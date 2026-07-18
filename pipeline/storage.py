@@ -10,13 +10,22 @@ handful of unattended cycles would fill it. We keep only the most recent N cycle
 and rely on GCS (once configured) as the durable long-term store.
 """
 import os
+import re
 import shutil
+from datetime import datetime, timezone
 
 OUTPUT_ROOT = "outputs"
+_CYCLE_LABEL_RE = re.compile(r"^\d{8}_\d{2}z$")
+
+
+def cycle_label(init_time):
+    """Human-readable cycle id, e.g. 1784376000 -> '20260718_12z' (matches NOMADS' own
+    gfs.<date>/<hour> convention, instead of an opaque unix timestamp in dir/key names)."""
+    return datetime.fromtimestamp(init_time, tz=timezone.utc).strftime("%Y%m%d_%Hz")
 
 
 def cycle_dir(init_time, root=OUTPUT_ROOT):
-    path = os.path.join(root, str(init_time))
+    path = os.path.join(root, cycle_label(init_time))
     os.makedirs(path, exist_ok=True)
     return path
 
@@ -26,12 +35,13 @@ def local_path(init_time, forecast_hour, root=OUTPUT_ROOT):
 
 
 def prune_old_cycles(keep=2, root=OUTPUT_ROOT):
-    """Deletes all but the `keep` most-recently-initialized cycle directories."""
+    """Deletes all but the `keep` most-recently-initialized cycle directories.
+    'YYYYMMDD_HHz' sorts chronologically as a plain string, so no parsing needed."""
     if not os.path.isdir(root):
         return []
     cycles = sorted(
-        (d for d in os.listdir(root) if d.isdigit() and os.path.isdir(os.path.join(root, d))),
-        key=int, reverse=True,
+        (d for d in os.listdir(root) if _CYCLE_LABEL_RE.match(d) and os.path.isdir(os.path.join(root, d))),
+        reverse=True,
     )
     removed = []
     for d in cycles[keep:]:
