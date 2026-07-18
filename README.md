@@ -26,6 +26,13 @@ conditions, run WM-3, validate the output, and keep it running unattended on a G
 - **Storage**: outputs are written to local disk first; Google Cloud Storage upload is
   wired up (`pipeline/storage.py`) but only activates once `GCS_BUCKET` (+ GCP
   credentials) are set — see "Output storage" below.
+- **Docker build not tested in this environment**: the GPU box this pipeline actually ran
+  on is itself an unprivileged container, and Docker's daemon needs iptables/NAT
+  capabilities that aren't available inside it (confirmed: `dockerd` fails at
+  `iptables --wait -t nat -N DOCKER: ... Permission denied`). The `Dockerfile` mirrors the
+  exact install steps verified working bare-metal on this box, but `docker build`/`docker
+  run --gpus all` themselves were not exercised end-to-end here — worth a real test on a
+  plain (non-nested) GPU host before depending on it.
 
 ## Setup
 
