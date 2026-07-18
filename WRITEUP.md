@@ -138,18 +138,18 @@ production pipeline (`pipeline/storage.py`, `scripts/cron_cycle.sh` exports `S3_
 and confirmed working end-to-end — a full 60-file+plots production cycle was run and all
 62 resulting objects verified against the live bucket listing (10.24GB total).
 
-**Access note**: the bucket policy grants public `s3:GetObject` only, not
-`s3:ListBucket` — so browsing a prefix like
-`https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/20260718_12z/` in a
-browser returns Access Denied (confirmed directly), but fetching a *specific known key*
-works anonymously with no credentials, e.g.:
-```
-https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/20260718_12z/wm3_f006.nc
-https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/20260718_12z/eyecheck_temperature_f006.png
-```
-(verified: direct `curl` to the second URL returns `200 OK`). To browse/list the bucket
-you need AWS credentials with `s3:ListBucket` — the exact key pattern above is enough for
-programmatic or spot-check access without them.
+**Access**: the bucket policy grants public `s3:GetObject` *and* `s3:ListBucket`, both
+confirmed working anonymously (no AWS credentials needed):
+- Fetch a specific file directly:
+  `https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/20260718_12z/wm3_f006.nc`
+  (verified: `200 OK`).
+- List a cycle's contents:
+  `https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/?list-type=2&prefix=20260718_12z/`
+  (verified: returns all 62 objects as XML). Note S3's REST API always treats
+  `GET <bucket>/<path>` as "fetch the object literally named `<path>`" — appending a
+  prefix directly to the URL path (`.../20260718_12z/`) returns `NoSuchKey`, since S3 has
+  no real folders; listing requires the query-parameter form above, or a normal client
+  like `aws s3 ls s3://windbornesystem-mlops-assignment/20260718_12z/` / the AWS Console.
 
 GCS upload is also implemented as an alternative path (`GCS_BUCKET` env var) but not
 currently used since S3 covers the durable-storage requirement. Outputs also remain on
