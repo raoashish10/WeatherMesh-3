@@ -104,6 +104,13 @@ def run_cycle(lead_hours=None, grib_cache="nomads_cache", keep_cycles=2):
             plot_pressure_wind_map(ds, wind_path)
             summary["plots"] += [temp_path, wind_path]
 
+            for plot_path in (temp_path, wind_path):
+                plot_key = f"{cycle_label(init_time)}/{plot_path.rsplit('/', 1)[-1]}"
+                if s3_enabled():
+                    summary["uploaded"].append(upload_to_s3(plot_path, remote_key=plot_key))
+                if gcs_enabled():
+                    summary["uploaded"].append(upload_to_gcs(plot_path, remote_blob_name=plot_key))
+
     removed = prune_old_cycles(keep=keep_cycles)
     if removed:
         print(f"Pruned old local cycles: {removed}")
