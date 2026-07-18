@@ -9,3 +9,7 @@
 - 2026-07-18 18:0x — Denormalize + NetCDF postprocessing working, values physically
   plausible (2m temp 215-316K, msl 95.6-103.4kPa). Switched to int16-packed NetCDF
   (~170MB/file vs ~650MB float32) since 161 files/cycle wouldn't fit disk otherwise.
+- 2026-07-18 18:1x — NOAA NOMADS ETL working end-to-end (range-fetch only needed grib2
+  fields, ~130MB/cycle in a few seconds). Fixed a real bug: GFS reports cloud cover as
+  0-100%, model expects 0-1 fraction. Hardened fetch against NOMADS rate-limiting
+  (redirects to an HTML error page that `requests` follows silently).
