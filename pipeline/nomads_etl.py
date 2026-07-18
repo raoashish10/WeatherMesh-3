@@ -20,6 +20,11 @@ import pipeline  # noqa: F401
 from utils import levels_gfs, levels_hres, core_pressure_vars
 
 BASE = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod"
+# NOMADS' own "prod" directory only keeps a rolling ~10 day window (confirmed empirically:
+# oldest available was 9 days back at time of writing). NOAA's public AWS Open Data GFS
+# archive mirrors the exact same file/idx layout with much longer retention -- used for
+# retrospective validation against real past events (e.g. cyclone track verification).
+ARCHIVE_BASE = "https://noaa-gfs-bdp-pds.s3.amazonaws.com"
 PRESSURE_GRIB_VARS = {"129_z": "HGT", "130_t": "TMP", "131_u": "UGRD", "132_v": "VGRD", "133_q": "SPFH"}
 G0 = 9.80665  # m/s^2, converts geopotential height (gpm) -> geopotential (m^2/s^2)
 
@@ -110,11 +115,12 @@ def _wanted_records(records):
     return wanted
 
 
-def fetch_gfs_subset(date_str, hour, forecast_hour=0, out_path=None, max_workers=16):
+def fetch_gfs_subset(date_str, hour, forecast_hour=0, out_path=None, max_workers=16, base=BASE):
     """Downloads only the grib2 messages WM-3 needs for one GFS init time.
-    Returns the raw concatenated grib2 bytes (also written to out_path if given)."""
+    Returns the raw concatenated grib2 bytes (also written to out_path if given).
+    Pass base=ARCHIVE_BASE for init times older than NOMADS' rolling retention window."""
     session = _http1_session()
-    url = f"{BASE}/gfs.{date_str}/{hour}/atmos/gfs.t{hour}z.pgrb2.0p25.f{forecast_hour:03d}"
+    url = f"{base}/gfs.{date_str}/{hour}/atmos/gfs.t{hour}z.pgrb2.0p25.f{forecast_hour:03d}"
 
     idx = _get_with_retry(session, url + ".idx", _looks_like_idx, timeout=30)
     records = _parse_idx(idx.text)
