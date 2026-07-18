@@ -26,5 +26,8 @@
   simultaneously (~35GB) — fixed via `forward(..., send_to_cpu=True)`.
 - 2026-07-18 18:4x — Full-schedule validation: 91 boundary flags, all in just 2 checks
   (atm temp slightly >320K, specific humidity slightly >0.025 kg/kg), stable across all
-  60 lead times (not diverging). Geo-clustering check in progress to confirm these
-  coincide with known hot-desert regions rather than being random/oceanic.
+  60 lead times (not diverging). Geo-clustering: all humidity flags in Arabian
+  Peninsula/Persian Gulf (known extreme-dewpoint region); temp flags cluster in
+  Sahara/Arabian Peninsula plus Turkmenistan/Uzbekistan (Karakum desert) and Xinjiang's
+  Turpan Depression (China's hottest recorded spot) — all at 950-1000hPa (near-surface).
+  Real July desert heat, not a model artifact.
