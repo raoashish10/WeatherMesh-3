@@ -43,3 +43,10 @@
   Sahara/Arabian Peninsula plus Turkmenistan/Uzbekistan (Karakum desert) and Xinjiang's
   Turpan Depression (China's hottest recorded spot) — all at 950-1000hPa (near-surface).
   Real July desert heat, not a model artifact.
+- 2026-07-18 22:30-22:42 — First real (unattended, not manually triggered) scheduled cron
+  firing actually failed: `ModuleNotFoundError: No module named 'torch'`. Root cause:
+  cron's minimal PATH resolves `python3` to the system interpreter, not
+  `/opt/conda/bin/python3` where torch is installed. The alerting system caught it exactly
+  as designed (`logs/alerts.log` fired). Fixed by hardcoding the interpreter path in
+  `scripts/cron_cycle.sh`; verified the fix under a truly minimal `env -i` environment
+  matching cron's, not just re-tested interactively.

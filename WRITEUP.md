@@ -115,13 +115,21 @@ I dug into this instead of writing it off:
 
 - **Visual sharpness** — plots show sharp detail (coastlines, terrain-driven temperature gradients), not smudged/blurred output.
 
-- **Two real bugs I found and fixed during validation** (not just "it ran without erroring"):
+- **Three real bugs I found and fixed during validation** (not just "it ran without erroring"):
   1. GFS reports total cloud cover as 0–100%. The model's normalization stats expect a 0–1 fraction. 
   I caught this because decoded cloud cover came out with mean ~7 instead of ~0.07.
 
   2. GPU OOM on the full 60-lead-time rollout 
   - Decoded outputs for all 60 lead times were staying resident on GPU simultaneously (~35GB). 
   - Fixed this via `forward(..., send_to_cpu=True)`. Basically offloading them to CPU to save memory.
+
+  3. The first real (unattended, not manually triggered) scheduled cron firing actually
+  failed: `ModuleNotFoundError: No module named 'torch'`. cron's minimal `PATH` resolves
+  `python3` to the system interpreter, not `/opt/conda/bin/python3` where torch lives —
+  works fine when I run it myself interactively, breaks unattended. The alerting I built
+  caught it exactly as designed (`logs/alerts.log` fired). Fixed by hardcoding the
+  interpreter path in `scripts/cron_cycle.sh`, and verified the fix under a real minimal
+  `env -i` environment matching cron's, not just by re-testing interactively.
 
 - **Self-consistency check (6×1hr vs 1×6hr) was not possible.** 
   - I'd planned this initially, but the actual checkpoint (`weights/WeatherMesh3.pt`) only contains a 6-hour processor which I understood after I checked its `state_dict` keys directly and there's no `"1"` key. 
