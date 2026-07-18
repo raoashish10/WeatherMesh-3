@@ -26,17 +26,23 @@ conditions, run WM-3, validate the output, and keep it running unattended on a G
 - **Storage**: outputs are written to local disk first; Google Cloud Storage upload is
   wired up (`pipeline/storage.py`) but only activates once `GCS_BUCKET` (+ GCP
   credentials) are set — see "Output storage" below.
-- **Docker build not tested in this environment**: the GPU box this pipeline actually ran
-  on is itself an unprivileged container, and Docker's daemon needs iptables/NAT
-  capabilities that aren't available inside it (confirmed: `dockerd` fails at
-  `iptables --wait -t nat -N DOCKER: ... Permission denied`). The `Dockerfile` mirrors the
-  exact install steps verified working bare-metal on this box, but `docker build`/`docker
-  run --gpus all` themselves were not exercised end-to-end here — worth a real test on a
-  plain (non-nested) GPU host before depending on it.
+- **Docker build not verified** — see the callout in the "Docker" section under Setup
+  below for the specific failure and what was and wasn't tested.
 
 ## Setup
 
-### Docker (recommended)
+### Docker
+
+> **Not build-verified.** `docker build` / `docker run --gpus all` below have **not**
+> actually been run to completion anywhere in this submission. The GPU box this pipeline
+> was developed and run on is itself an unprivileged container, and `dockerd` cannot start
+> on it — it fails at network-controller init (`iptables --wait -t nat -N DOCKER: ...
+> Permission denied`), confirmed by directly attempting `apt-get install docker.io &&
+> dockerd`. The Dockerfile mirrors the exact install steps that *are* verified working
+> bare-metal on this box (same pip installs, same NATTEN wheel resolution logic, same
+> `PYTHONPATH`), but the image itself has never been built or run. **Test `docker build`
+> and a `--gpus all` run on a plain (non-nested) Docker host before relying on this.**
+
 ```
 docker build -t weathermesh3-pipeline .
 docker run --gpus all \
