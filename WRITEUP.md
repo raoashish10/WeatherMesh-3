@@ -132,16 +132,29 @@ details against the live repo/checkpoint where the earlier research didn't match
 
 ## (e) Output storage
 
-**S3**: `s3://windbornesystem-mlops-assignment/` (public bucket, us-east-2), one key per
-file: `<YYYYMMDD_HHz>/wm3_f<NNN>.nc`. Wired into the production pipeline
-(`pipeline/storage.py`, `scripts/cron_cycle.sh` exports `S3_BUCKET`) and confirmed working
-end-to-end — verified with a real upload through `run_live_rollout.py` (not just a
-standalone `boto3` call), listed back from the bucket to confirm the objects and sizes
-match. GCS upload is also implemented as an alternative path (`GCS_BUCKET` env var) but
-not currently used since S3 covers the durable-storage requirement.
+**S3**: `s3://windbornesystem-mlops-assignment/` (us-east-2), one key per file:
+`<YYYYMMDD_HHz>/wm3_f<NNN>.nc` plus two `eyecheck_*.png` plots per cycle. Wired into the
+production pipeline (`pipeline/storage.py`, `scripts/cron_cycle.sh` exports `S3_BUCKET`)
+and confirmed working end-to-end — a full 60-file+plots production cycle was run and all
+62 resulting objects verified against the live bucket listing (10.24GB total).
 
-Outputs also remain on local disk (`outputs/<YYYYMMDD_HHz>/wm3_f<NNN>.nc`, pruned to the 2
-most recent cycles) as a working cache — S3 is the durable store.
+**Access note**: the bucket policy grants public `s3:GetObject` only, not
+`s3:ListBucket` — so browsing a prefix like
+`https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/20260718_12z/` in a
+browser returns Access Denied (confirmed directly), but fetching a *specific known key*
+works anonymously with no credentials, e.g.:
+```
+https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/20260718_12z/wm3_f006.nc
+https://windbornesystem-mlops-assignment.s3.us-east-2.amazonaws.com/20260718_12z/eyecheck_temperature_f006.png
+```
+(verified: direct `curl` to the second URL returns `200 OK`). To browse/list the bucket
+you need AWS credentials with `s3:ListBucket` — the exact key pattern above is enough for
+programmatic or spot-check access without them.
+
+GCS upload is also implemented as an alternative path (`GCS_BUCKET` env var) but not
+currently used since S3 covers the durable-storage requirement. Outputs also remain on
+local disk (`outputs/<YYYYMMDD_HHz>/wm3_f<NNN>.nc`, pruned to the 2 most recent cycles) as
+a working cache — S3 is the durable store.
 
 ## (f) Repo
 
