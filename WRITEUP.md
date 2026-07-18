@@ -167,7 +167,7 @@ https://github.com/raoashish10/WeatherMesh-3 — setup instructions, Dockerfile,
 
 ## (g) With more time
 
-- Parallelize NetCDF postprocessing across CPU cores — it's the dominant cost (~13s/file, 776s of the 892s full-cycle wall-clock), it single-threaded right now.
+- Parallelize NetCDF postprocessing across CPU cores. It's the dominant cost (~13s/file, 776s of the 892s full-cycle wall-clock), it single-threaded right now. Model in itself runs pretty fast as compared to the post-processing step.
 - Actually build and run the Docker image on a non-nested GPU host (couldn't test it here due to limitations within the vast.ai instance for running docker alongside).
 - Get real WindBorne API access and compare its GFS ICs against the NOMADS ones I used here.
 - Extend the cyclone validation beyond track position: compare predicted intensity (min pressure, max wind) against best-track more rigorously and run it against a second/third storm to see if the ~177km mean error and the apparent shallow-pressure bias generalize or are specific to Bavi.
