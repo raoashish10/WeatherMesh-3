@@ -115,12 +115,18 @@ disk.
 
 Local: `outputs/<init_time_unix>/wm3_f<NNN>.nc`. Only the most recent 2 cycles are kept
 locally (`pipeline/storage.py: prune_old_cycles`) since each cycle is ~10GB packed and this
-runs unattended — GCS (once configured) is the durable store, not the instance disk.
+runs unattended — a remote bucket is the durable store, not the instance disk.
 
-To enable GCS upload, set `GCS_BUCKET=<bucket-name>` and either
-`GOOGLE_APPLICATION_CREDENTIALS=<path-to-service-account.json>` or run
-`gcloud auth application-default login`. Without `GCS_BUCKET` set, uploads are a
-logged no-op — this is the current state of this submission.
+**S3 is wired up and active**: `s3://windbornesystem-mlops-assignment/<init_time_unix>/
+wm3_f<NNN>.nc` (us-east-2). `scripts/cron_cycle.sh` exports `S3_BUCKET` for every cron
+run; AWS credentials live in `~/.aws/credentials` (outside this repo, not
+version-controlled). Confirmed working with a real upload verified against the bucket
+listing, not just a dry run.
+
+GCS upload is also implemented as an alternative (`GCS_BUCKET` + either
+`GOOGLE_APPLICATION_CREDENTIALS` or `gcloud auth application-default login`) but isn't
+currently used since S3 covers this submission's storage requirement. Both are no-ops
+(logged, not fatal) when their respective bucket env var isn't set.
 
 ## Automation + monitoring
 

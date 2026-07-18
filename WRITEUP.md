@@ -125,11 +125,16 @@ details against the live repo/checkpoint where the earlier research didn't match
 
 ## (e) Output storage
 
-**Not yet wired to a real bucket** as of this submission — outputs are on local disk
-(`outputs/<init_time>/wm3_f<NNN>.nc`, pruned to the 2 most recent cycles). GCS upload is
-implemented (`pipeline/storage.py`) and activates automatically once `GCS_BUCKET` +
-credentials are set; this was explicitly deferred (local-first) during the build and is
-still pending on the account/bucket side.
+**S3**: `s3://windbornesystem-mlops-assignment/` (public bucket, us-east-2), one key per
+file: `<init_time_unix>/wm3_f<NNN>.nc`. Wired into the production pipeline
+(`pipeline/storage.py`, `scripts/cron_cycle.sh` exports `S3_BUCKET`) and confirmed working
+end-to-end — verified with a real upload through `run_live_rollout.py` (not just a
+standalone `boto3` call), listed back from the bucket to confirm the objects and sizes
+match. GCS upload is also implemented as an alternative path (`GCS_BUCKET` env var) but
+not currently used since S3 covers the durable-storage requirement.
+
+Outputs also remain on local disk (`outputs/<init_time>/wm3_f<NNN>.nc`, pruned to the 2
+most recent cycles) as a working cache — S3 is the durable store.
 
 ## (f) Repo
 
