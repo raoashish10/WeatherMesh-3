@@ -24,6 +24,11 @@
   (dominated by NetCDF postprocess/save, ~13s/file). Fixed a real OOM bug found during
   this run: decoded outputs for all 60 lead times were staying resident on GPU
   simultaneously (~35GB) — fixed via `forward(..., send_to_cpu=True)`.
+- 2026-07-18 19:3x — S3 wired up (windbornesystem-mlops-assignment, us-east-2), confirmed
+  end-to-end. Switched local/S3 cycle naming from raw unix timestamps to readable
+  YYYYMMDD_HHz. Ran one full production cycle (60 files + 2 eye-check plots) for the
+  most recent GFS init, verified all 62 artifacts landed in S3 via bucket listing
+  (10.24GB total, 968.8s wall-clock).
 - 2026-07-18 18:4x — Full-schedule validation: 91 boundary flags, all in just 2 checks
   (atm temp slightly >320K, specific humidity slightly >0.025 kg/kg), stable across all
   60 lead times (not diverging). Geo-clustering: all humidity flags in Arabian
