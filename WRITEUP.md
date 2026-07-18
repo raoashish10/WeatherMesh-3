@@ -2,9 +2,19 @@
 
 Repo: https://github.com/raoashish10/WeatherMesh-3
 
-## (a) It worked — the short version
+## (a) Evidence to show the inference worked correctly
 
 Three plots from a live rollout on real, freshly-pulled GFS data (2026-07-18 12z init). Full images in `docs/plots/`.
+
+1. **A real 9-day forecast of Typhoon Bavi (2026), checked against what really happened**
+   - Everything above is a self-consistency check. This one is a genuine forecast verified against an event that isn't in the model's training distribution's future.
+   - Init 2026-07-03 00Z (from NOAA's archived GFS, ~60h before Bavi's peak intensity), rolled out to +216h (9 days, through the July 11 China landfall).
+   - Storm tracked via the MSL pressure minimum at each lead time, checked against real 6-hourly best-track data from CIRA/CSU's tropical cyclone tracker.
+   - Mean track error: 177km, median 182km across 36 matched lead times degrading roughly with lead time like a genuine forecast should.
+   - Full methodology and data provenance in §(b)(ii).
+
+   ![Bavi track vs actual](docs/plots/04_cyclone_bavi_track.png)
+
 
 
 1. **hour-0 reconstruction vs. actual input**
@@ -74,6 +84,14 @@ Three plots from a live rollout on real, freshly-pulled GFS data (2026-07-18 12z
   - The two outputs are byte-for-byte identical (same MD5, 0 max abs diff across every variable).
   - This rules out a single-step shortcut or a stale/cached file.
 
+- **Accuracy vs. real ground truth (Typhoon Bavi, 2026)** (`scripts/validate_cyclone.py`, `pipeline/cyclone_track.py`)
+  - Everything else here is self-consistency. This is the one check against something that actually happened, so I didn't just trust the storm data blindly, I cross-checked it against Wikipedia, JTWC's reported peak intensity, and Yale Climate Connections. Best-track data is from CIRA/CSU, saved in `docs/bavi_2026_besttrack.json`.
+  - NOMADS only keeps ~10 days of live data, so a July 3 init meant pulling from NOAA's archived GFS instead (`noaa-gfs-bdp-pds`).
+  - Rolled out 9 days from the 2026-07-03 00Z init (36 lead times, through the July 11 China landfall). At each lead time, found the MSL pressure minimum near the storm's known position and measured great-circle distance to the real track.
+  - Mean track error: 177km, median 182km, max 442km. That's in the range real operational forecasts get, and it degrades with lead time like a real forecast should, not flat or erratic.
+  - One caveat: WM-3's pressure minimums run a bit shallow next to Bavi's true ~901hPa peak, likely just under-resolving the eyewall at 0.25° grid spacing.
+  - Uploaded through the same S3 path as the scheduled runs, all 36 files verified against the bucket listing.
+
 - **Plausibility bounds** (`pipeline/validate.py`), run across the full 60-lead-time (+6h to +360h) production schedule:
   - 2m temp/dewpoint in [180,340]K
   - MSL pressure in [87000,110000]Pa
@@ -108,6 +126,8 @@ I dug into this instead of writing it off:
   - I'd planned this initially, but the actual checkpoint (`weights/WeatherMesh3.pt`) only contains a 6-hour processor which I understood after I checked its `state_dict` keys directly and there's no `"1"` key. 
   - If the 1-processor would have been available, I would do this check.
 
+
+
 ## (c) Time log
 
 Full log in `TIME_LOG.md`. Git history backs it up directly (`git log 8b84ebd..HEAD`. Condensed:
@@ -125,10 +145,10 @@ Full log in `TIME_LOG.md`. Git history backs it up directly (`git log 8b84ebd..H
 ## (d) AI tools I used
 
 - **Claude Code did essentially all the implementation work** in this session:
-  - Read the vendored architecture repo to resolve ambiguities my earlier research got wrong — the 721-vs-720 grid nuance, the 25/20→28-level interpolation step (undocumented anywhere), and the fact this checkpoint only has a 6-hour processor.
+  - Read the vendored architecture repo to resolve ambiguities my earlier research got wrong specifically the 721 vs 720 grid nuance, the 25/20 to 28-level interpolation step and the fact this checkpoint only has a 6-hour processor.
   - Wrote the ETL/model/postprocess/validation/automation code.
   - Ran it against a real GPU and real NOMADS data, and debugged the two real bugs above.
-  - Iterated on direct pushback from me — this writeup exists because I asked it to verify (not just claim) that the OOM fix actually preceded the reported benchmark numbers, checked against raw logs.
+  - Iterated on direct pushback from me. This writeup exists because I asked it to verify that the OOM fix actually preceded the reported benchmark numbers, checked against raw logs.
 
 - **Before this session, I used Claude.ai** for upfront research: reading the WM-3 paper/repo, drafting the infra plan (vast.ai, Docker base image, output schedule), and the validation-bounds plan. That research is what this session's brief was built from — this session corrected several details against the live repo/checkpoint where my earlier research didn't match reality.
 
@@ -149,6 +169,8 @@ https://github.com/raoashish10/WeatherMesh-3 — setup instructions, Dockerfile,
 - Parallelize NetCDF postprocessing across CPU cores — it's the dominant cost (~13s/file, 776s of the 892s full-cycle wall-clock), it single-threaded right now.
 - Actually build and run the Docker image on a non-nested GPU host (couldn't test it here due to limitations within the vast.ai instance for running docker alongside).
 - Get real WindBorne API access and compare its GFS ICs against the NOMADS ones I used here.
+- Extend the cyclone validation beyond track position: compare predicted intensity (min pressure, max wind) against best-track more rigorously and run it against a second/third storm to see if the ~177km mean error and the apparent shallow-pressure bias generalize or are specific to Bavi.
+- The eastward track bias visible in the Bavi plot (predicted track consistently a bit east of actual through the recurve) is a one-storm data point. I would check with more cases.
 
 ## (h) Feedback on the assignment
 
