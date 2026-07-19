@@ -150,6 +150,16 @@ Full log in `TIME_LOG.md`. Git history backs it up directly (`git log 8b84ebd..H
 | 18:18–18:35 | Validation + 3 plots; cron automation; GCS-ready storage layer (deferred, not wired to a real bucket); Dockerfile; README |
 | 18:37–19:06 | Confirmed a real full-cycle benchmark (found + fixed a GPU OOM along the way); ran geo-clustering analysis on validation flags; tightened alerting to NaN/Inf only; verified cron wrapper end-to-end via direct invocation; added per-cycle eye-check plots |
 | 19:06–onward | Wired up S3 and verified it end-to-end (real upload checked against bucket listing); switched cycle naming from raw unix timestamps to readable `YYYYMMDD_HHz`; ran a full production run (60 files + plots) to S3 for the most recent GFS cycle |
+| 20:2x–23:00 | Cyclone track validation against Typhoon Bavi's real best track (177km mean error); S3 access-policy fixes; found + fixed a real cron failure (`ModuleNotFoundError: torch`, wrong `python3` under cron's minimal `PATH`) |
+| 04:30 (next day) | The actual first unattended, crond-triggered firing after the fix — succeeded cleanly, closing the automation-verification loop |
+
+**Active engineering time vs. wall-clock time**: commits span `17:47`–`23:00` on 2026-07-18
+— about 5h13m of active work, already past the nominal 4h budget (partly from scope I
+added later: the cyclone validation, real S3 wiring). `git log`'s full first-to-last span
+looks much longer than that (into the next calendar day) because of two scheduled cron
+firings (22:30 and 04:30 UTC) I had to wait for in real time — "runs unattended 24h+" can
+only be verified by actually letting it run unattended and checking back, not by working
+faster. Those gaps are idle waiting on the clock, not additional work.
 
 ## (d) AI tools I used
 
